@@ -1,6 +1,6 @@
 const express = require("express");
-const { Income } = require("../models");
 const { authenticate } = require("../middleware/auth.middleware");
+const { addIncome, updateIncome, getIncome } = require("../controllers/income.controller");
 
 const router = express.Router();
 
@@ -28,28 +28,7 @@ const router = express.Router();
  *       400:
  *         description: Invalid input
  */
-router.post("/", authenticate, async (req, res) => {
-  try {
-    const { amount } = req.body;
-    const userId = req.user.id;
-
-    if (amount < 0) {
-      return res.status(400).json({ error: "Income cannot be negative" });
-    }
-
-    const existingIncome = await Income.findOne({ where: { userId } });
-
-    if (existingIncome) {
-      return res.status(400).json({ error: "Income already exists. Use PUT to update." });
-    }
-
-    const income = await Income.create({ userId, amount: amount || 0 });
-
-    return res.status(201).json(income);
-  } catch (error) {
-    return res.status(500).json({ error: "Internal Server Error" });
-  }
-});
+router.post("/", authenticate, addIncome);
 
 /**
  * @swagger
@@ -75,28 +54,22 @@ router.post("/", authenticate, async (req, res) => {
  *       400:
  *         description: Invalid input
  */
-router.put("/", authenticate, async (req, res) => {
-  try {
-    const { amount } = req.body;
-    const userId = req.user.id;
+router.put("/", authenticate, updateIncome);
 
-    if (amount < 0) {
-      return res.status(400).json({ error: "Income cannot be negative" });
-    }
-
-    const income = await Income.findOne({ where: { userId } });
-
-    if (!income) {
-      return res.status(404).json({ error: "Income not found. Use POST to create." });
-    }
-
-    income.amount = amount;
-    await income.save();
-
-    return res.status(200).json(income);
-  } catch (error) {
-    return res.status(500).json({ error: "Internal Server Error" });
-  }
-});
+/**
+ * @swagger
+ * /api/income:
+ *   get:
+ *     summary: Get income of the logged-in user
+ *     tags: [Income]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Returns the user's income
+ *       404:
+ *         description: Income not found
+ */
+router.get("/", authenticate, getIncome);
 
 module.exports = router;
