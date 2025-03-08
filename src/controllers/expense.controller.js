@@ -1,9 +1,8 @@
 const db = require("../models");
 const Expense = db.Expense;
-const Income = db.Income;
 
 /**
- * @desc Add an expense (only if total expense does not exceed income)
+ * @desc Add an expense for the user
  * @route POST /api/expenses
  */
 exports.addExpense = async (req, res) => {
@@ -11,72 +10,97 @@ exports.addExpense = async (req, res) => {
     const { type, amount } = req.body;
     const userId = req.user.id;
 
-    const income = await Income.findOne({ where: { userId } });
-    if (!income) return res.status(400).json({ error: "Please enter income first." });
-
-    const totalExpense = await Expense.sum("amount", { where: { userId } });
-    const newTotal = (totalExpense || 0) + parseFloat(amount);
-
-    if (newTotal > income.amount) {
-      return res.status(400).json({ error: "Expense cannot exceed the income." });
+    if (amount <= 0) {
+      return res.status(400).json({ error: "Expense amount must be greater than zero." });
     }
 
     const expense = await Expense.create({ userId, type, amount });
-    res.status(201).json(expense);
+    return res.status(201).json(expense);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
 /**
- * @desc Get all expenses for the user
+ * @desc Get all expenses for a user
  * @route GET /api/expenses
  */
 exports.getExpenses = async (req, res) => {
   try {
     const userId = req.user.id;
     const expenses = await Expense.findAll({ where: { userId } });
-    res.status(200).json(expenses);
+
+    return res.status(200).json(expenses);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
 /**
- * @desc Update an expense
+ * @desc Get a single expense by ID
+ * @route GET /api/expenses/:id
+ */
+exports.getExpenseById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const expense = await Expense.findOne({ where: { id, userId: req.user.id } });
+
+    if (!expense) {
+      return res.status(404).json({ error: "Expense not found" });
+    }
+
+    return res.status(200).json(expense);
+  } catch (error) {
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+/**
+ * @desc Update an expense by ID
  * @route PUT /api/expenses/:id
  */
 exports.updateExpense = async (req, res) => {
   try {
-    const { type, amount } = req.body;
     const { id } = req.params;
-    const userId = req.user.id;
+    const { type, amount } = req.body;
 
-    const expense = await Expense.findOne({ where: { id, userId } });
-    if (!expense) return res.status(404).json({ error: "Expense not found" });
+    const expense = await Expense.findOne({ where: { id, userId: req.user.id } });
 
-    await expense.update({ type, amount });
-    res.status(200).json(expense);
+    if (!expense) {
+      return res.status(404).json({ error: "Expense not found" });
+    }
+
+    if (amount <= 0) {
+      return res.status(400).json({ error: "Expense amount must be greater than zero." });
+    }
+
+    expense.type = type || expense.type;
+    expense.amount = amount;
+
+    await expense.save();
+
+    return res.status(200).json(expense);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
 /**
- * @desc Delete an expense
+ * @desc Delete an expense by ID
  * @route DELETE /api/expenses/:id
  */
 exports.deleteExpense = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const expense = await Expense.findOne({ where: { id, userId: req.user.id } });
 
-    const expense = await Expense.findOne({ where: { id, userId } });
-    if (!expense) return res.status(404).json({ error: "Expense not found" });
+    if (!expense) {
+      return res.status(404).json({ error: "Expense not found" });
+    }
 
     await expense.destroy();
-    res.status(200).json({ message: "Expense deleted successfully" });
+    return res.status(200).json({ message: "Expense deleted successfully" });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
