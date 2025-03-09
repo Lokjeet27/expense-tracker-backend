@@ -10,6 +10,12 @@ const swaggerDocs = require("./src/docs/swagger"); // Fix import
 
 const app = express();
 
+const corsOrigin ={
+    origin:'https://expense-tracker-frontend-2gwb.onrender.com', //or whatever port your frontend is using
+    credentials:true,            
+    optionSuccessStatus:200
+}
+
 app.use(cors());
 
 app.use(express.json());
