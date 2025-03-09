@@ -11,7 +11,8 @@ const swaggerDocs = require("./src/docs/swagger"); // Fix import
 const app = express();
 
 app.use(cors({
-    origin: 'http://localhost:5173',  // Change this if your frontend URL is different
+    // origin: 'http://localhost:5173',  // Change this if your frontend URL is different
+    origin: 'https://expense-tracker-frontend-2gwb.onrender.com/',  // Change this if your frontend URL is different
     credentials: true
   }));
 
